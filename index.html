@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="依磁磚尺寸、縫寬、方向與排列型式產生 AutoCAD 自訂填充 PAT 檔。">
+  <title>TilePAT｜磁磚填充設計工具</title>
+  <style>
+    :root{--ink:#16211d;--muted:#64716b;--line:#dce3df;--paper:#f4f6f3;--card:#fff;--green:#176b4d;--green2:#dff2e8;--orange:#de7343;--cad:#17201d;--cadline:#d7e8df;--radius:16px}
+    *{box-sizing:border-box}html{color-scheme:light}body{margin:0;background:var(--paper);color:var(--ink);font-family:"Microsoft JhengHei","PingFang TC",system-ui,sans-serif;font-size:14px}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+    header{height:68px;padding:0 28px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{display:flex;align-items:center;gap:12px}.mark{width:34px;height:34px;border-radius:9px;background:var(--green);position:relative;overflow:hidden}.mark:before,.mark:after{content:"";position:absolute;background:#fff;opacity:.9}.mark:before{width:2px;height:100%;left:16px}.mark:after{height:2px;width:100%;top:16px}.brand b{font-size:18px;letter-spacing:.02em}.brand span{color:var(--muted);font-size:12px;margin-left:8px}.status{display:flex;align-items:center;gap:8px;color:var(--green);font-size:12px}.dot{width:7px;height:7px;background:#23a66d;border-radius:50%;box-shadow:0 0 0 4px #e1f5ea}
+    main{padding:20px 28px 28px;display:grid;grid-template-columns:minmax(270px,340px) minmax(440px,1fr) minmax(260px,340px);gap:18px;align-items:start}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 5px 18px rgba(22,33,29,.045)}
+    .panel{padding:20px}.panel h2,.preview-title h2{font-size:15px;margin:0}.eyebrow{text-transform:uppercase;color:var(--green);font-size:10px;letter-spacing:.14em;font-weight:700;margin-bottom:6px}.section{padding:18px 0;border-bottom:1px solid #edf0ee}.section:last-of-type{border-bottom:0}.section-title{font-weight:700;font-size:12px;margin-bottom:11px;display:flex;justify-content:space-between}.section-title small{font-weight:400;color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;color:var(--muted);font-size:11px;margin:0 0 5px}.input-wrap{position:relative}.input-wrap input{padding-right:42px}.unit{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#8a948f;pointer-events:none}input[type=number],input[type=text],select{width:100%;height:40px;border:1px solid var(--line);border-radius:9px;background:#fbfcfb;padding:0 10px;color:var(--ink);outline:0;transition:.15s}input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(23,107,77,.1)}
+    .chips{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.chip{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 4px;font-size:11px;color:var(--muted)}.chip:hover{border-color:#8daf9f;color:var(--green)}
+    .seg{display:grid;grid-template-columns:1fr 1fr;background:#eef1ef;border-radius:10px;padding:3px}.seg input,.patterns input{position:absolute;opacity:0;pointer-events:none}.seg label{text-align:center;padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}.seg input:checked+label{background:#fff;color:var(--green);font-weight:700;box-shadow:0 1px 4px #cdd4d0}
+    .patterns{display:grid;gap:7px}.pattern{display:grid;grid-template-columns:36px 1fr 18px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer}.pattern:hover{border-color:#a9bbb2}.pattern:has(input:checked){border-color:var(--green);background:#f3faf6}.pattern-swatch{width:34px;height:24px;border-radius:4px;background-color:#eef2ef;background-image:linear-gradient(#9eaaa4 1px,transparent 1px),linear-gradient(90deg,#9eaaa4 1px,transparent 1px);background-size:17px 12px}.stagger{background-position:0 0,0 0}.pattern strong{font-size:12px;display:block}.pattern small{font-size:10px;color:var(--muted)}.radio-dot{width:14px;height:14px;border:1px solid #aab5af;border-radius:50%}.pattern:has(input:checked) .radio-dot{border:4px solid var(--green)}
+    .preview-card{overflow:hidden}.preview-head{height:65px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.preview-title{display:flex;align-items:center;gap:10px}.badge{font-size:10px;color:var(--green);background:var(--green2);padding:4px 7px;border-radius:999px}.zoom{color:var(--muted);font-size:11px}.canvas-wrap{position:relative;background:var(--cad);padding:18px;min-height:500px}.canvas-wrap:before{content:"";position:absolute;inset:0;background-image:radial-gradient(#47534e 1px,transparent 1px);background-size:20px 20px;opacity:.32}.canvas-label{position:absolute;z-index:2;left:30px;top:29px;color:#b8c8c0;font-size:10px;letter-spacing:.1em}.axis{position:absolute;z-index:2;right:28px;bottom:28px;width:42px;height:42px;color:#a9b9b1;font-size:9px}.axis:before,.axis:after{content:"";position:absolute;left:8px;bottom:8px;background:#82938b}.axis:before{height:1px;width:29px}.axis:after{width:1px;height:29px}.axis .x{position:absolute;right:0;bottom:2px}.axis .y{position:absolute;left:3px;top:0}canvas{position:relative;z-index:1;display:block;width:100%;height:464px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line)}.metric{padding:14px 17px;border-right:1px solid var(--line)}.metric:last-child{border:0}.metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:3px}.metric b{font-size:13px;font-variant-numeric:tabular-nums}
+    .output{padding:20px}.filename{display:flex;align-items:center;margin:15px 0 12px;border:1px solid var(--line);border-radius:9px;overflow:hidden}.filename input{border:0;border-radius:0;background:#fbfcfb}.filename span{height:40px;display:grid;place-items:center;padding:0 10px;background:#eef2ef;color:var(--muted);font-size:11px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn{height:42px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:700}.btn.primary{grid-column:1/-1;background:var(--green);border-color:var(--green);color:#fff}.btn:hover{filter:brightness(.97)}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.45;cursor:not-allowed}.error{min-height:18px;color:#b9442f;font-size:11px;margin:8px 0 0}
+    details{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}summary{cursor:pointer;font-size:12px;font-weight:700}textarea{margin-top:10px;width:100%;height:180px;border:1px solid var(--line);border-radius:9px;padding:10px;resize:vertical;background:#15201c;color:#cfe0d7;font:10px/1.55 Consolas,monospace}.note{margin-top:16px;padding:12px;background:#f6f7f5;border-radius:10px;color:var(--muted);font-size:11px;line-height:1.65}.note b{color:var(--ink)}.steps{margin:15px 0 0;padding:0;list-style:none;counter-reset:step}.steps li{position:relative;padding:0 0 14px 28px;color:var(--muted);font-size:11px;line-height:1.55}.steps li:before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:#edf3ef;color:var(--green);font-weight:700;display:grid;place-items:center}
+    .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#101815;color:#fff;padding:10px 16px;border-radius:9px;font-size:12px;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+    @media(max-width:1080px){main{grid-template-columns:330px 1fr}.output-card{grid-column:1/-1}.output-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}.canvas-wrap{min-height:420px}canvas{height:384px}}
+    @media(max-width:760px){header{padding:0 16px}.brand span,.status{display:none}main{padding:12px;display:block}.card{margin-bottom:12px}.output-layout{display:block}.canvas-wrap{padding:10px;min-height:340px}canvas{height:320px}.metrics{grid-template-columns:1fr}.metric{border-right:0;border-bottom:1px solid var(--line)}.metric:last-child{border-bottom:0}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><div class="mark" aria-hidden="true"></div><div><b>TilePAT</b><span>磁磚填充設計工具</span></div></div>
+    <div class="status"><i class="dot"></i>離線運算・資料不外傳</div>
+  </header>
+  <main>
+    <section class="card panel" aria-labelledby="settingsTitle">
+      <div class="eyebrow">Pattern settings</div><h2 id="settingsTitle">填充參數</h2>
+      <div class="section">
+        <div class="section-title">磁磚尺寸 <small>輸入圖面實際單位</small></div>
+        <div class="grid2">
+          <div class="field"><label for="tw">磚長</label><div class="input-wrap"><input id="tw" type="number" value="60" min="0.0001" step="0.1"><span class="unit unit-text">cm</span></div></div>
+          <div class="field"><label for="th">磚寬</label><div class="input-wrap"><input id="th" type="number" value="30" min="0.0001" step="0.1"><span class="unit unit-text">cm</span></div></div>
+        </div>
+        <div class="chips" style="margin-top:9px" aria-label="常用尺寸">
+          <button class="chip" data-size="60,30">60 × 30</button><button class="chip" data-size="60,60">60 × 60</button><button class="chip" data-size="120,60">120 × 60</button>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">磁磚縫寬</div>
+        <div class="grid2">
+          <div class="field"><label for="sh">水平縫</label><div class="input-wrap"><input id="sh" type="number" value="0.3" min="0" step="0.05"><span class="unit unit-text">cm</span></div></div>
+          <div class="field"><label for="sv">垂直縫</label><div class="input-wrap"><input id="sv" type="number" value="0.3" min="0" step="0.05"><span class="unit unit-text">cm</span></div></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">接縫表現 <small>完整磚框會閉合四邊</small></div>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr)"><input id="filled" type="radio" name="jointMode" value="frame" checked><label for="filled">完整磚框</label><input id="openEnds" type="radio" name="jointMode" value="open"><label for="openEnds">端點斷開</label><input id="centerline" type="radio" name="jointMode" value="center"><label for="centerline">中心線</label></div>
+      </div>
+      <div class="section">
+        <div class="section-title">排列方向</div>
+        <div class="seg"><input id="oh" type="radio" name="orient" value="H" checked><label for="oh">橫貼 H</label><input id="ov" type="radio" name="orient" value="V"><label for="ov">豎貼 V</label></div>
+      </div>
+      <div class="section">
+        <div class="section-title">貼磚型式</div>
+        <div class="patterns">
+          <label class="pattern"><span class="pattern-swatch"></span><span><strong>平貼</strong><small>直縫對齊・偏移 0</small></span><input type="radio" name="ptile" value="1" checked><i class="radio-dot"></i></label>
+          <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>二一交丁</strong><small>隔排偏移 1/2 磚</small></span><input type="radio" name="ptile" value="2"><i class="radio-dot"></i></label>
+          <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一階梯</strong><small>三排循環 0・1/3・2/3</small></span><input type="radio" name="ptile" value="3"><i class="radio-dot"></i></label>
+          <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一交錯</strong><small>隔排偏移 1/3 磚</small></span><input type="radio" name="ptile" value="4"><i class="radio-dot"></i></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card preview-card" aria-labelledby="previewTitle">
+      <div class="preview-head"><div class="preview-title"><h2 id="previewTitle">填充預覽</h2><span class="badge">即時</span></div><span class="zoom" id="tileCount">—</span></div>
+      <div class="canvas-wrap"><span class="canvas-label">MODEL SPACE</span><canvas id="preview"></canvas><div class="axis"><span class="x">X</span><span class="y">Y</span></div></div>
+      <div class="metrics"><div class="metric"><span>沿貼模距 Mc</span><b id="metricMc">—</b></div><div class="metric"><span>跨貼模距 Mr</span><b id="metricMr">—</b></div><div class="metric"><span>排列說明</span><b id="metricType">—</b></div></div>
+    </section>
+
+    <section class="card output output-card" aria-labelledby="outputTitle">
+      <div class="eyebrow">AutoCAD output</div><h2 id="outputTitle">輸出 PAT</h2>
+      <div class="output-layout"><div>
+        <div class="filename"><input id="patname" type="text" value="TILEBRICK_SEGMENT" aria-label="PAT 圖案名稱" maxlength="31"><span>.pat</span></div>
+        <div class="actions"><button class="btn primary" id="download">下載 PAT 檔</button><button class="btn" id="copy">複製內容</button><button class="btn" id="reset">重設參數</button></div>
+        <div class="error" id="error" role="alert"></div>
+        <div class="note"><b>單位提醒</b><br>PAT 不記錄 cm 或 mm，只記錄數值。請讓這裡的輸入單位與 AutoCAD 圖面單位一致；若圖面以 mm 繪製，60 × 30 cm 請輸入 600 × 300。</div>
+      </div><div>
+        <ol class="steps"><li>下載後，把 PAT 放進 AutoCAD 支援檔案搜尋路徑。</li><li>執行 HATCH，在圖案清單的「自訂」中選擇此圖案。</li><li>比例設 1、角度設 0，再指定封閉牆面；窗洞可作為孤島。</li><li>完成後可在性質面板調整原點、角度與比例。</li></ol>
+        <details><summary>檢視 PAT 原始內容</summary><textarea id="patText" readonly spellcheck="false"></textarea></details>
+      </div></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const defaults={tw:60,th:30,sh:.3,sv:.3,orient:'H',ptile:'1',patname:'TILEBRICK_SEGMENT'};
+  const round=n=>Math.round(n*1e6)/1e6;
+  function params(){return{tw:+$('#tw').value,th:+$('#th').value,sh:+$('#sh').value,sv:+$('#sv').value,orient:$('input[name=orient]:checked').value,ptile:$('input[name=ptile]:checked').value,jointMode:$('input[name=jointMode]:checked').value,patname:cleanName($('#patname').value)}}
+  function cleanName(s){return(s||'TILEJOINT').toUpperCase().replace(/[^A-Z0-9_-]/g,'').slice(0,31)||'TILEJOINT'}
+  function model(p){let Mc,Mr,bed,perp,alongGap,crossGap;if(p.orient==='H'){Mc=p.tw+p.sh;Mr=p.th+p.sv;bed=0;perp=90;alongGap=p.sh;crossGap=p.sv}else{Mc=p.tw+p.sv;Mr=p.th+p.sh;bed=90;perp=0;alongGap=p.sv;crossGap=p.sh}let R=1,phases=[0];if(p.ptile==='2'){R=2;phases=[0,Mc/2]}if(p.ptile==='3'){R=3;phases=[0,Mc/3,2*Mc/3]}if(p.ptile==='4'){R=2;phases=[0,Mc/3]}return{Mc,Mr,bed,perp,R,phases,alongGap,crossGap}}
+  function valid(p){if(!Number.isFinite(p.tw)||!Number.isFinite(p.th)||p.tw<=0||p.th<=0)return'磚長與磚寬必須大於 0。';if(!Number.isFinite(p.sh)||!Number.isFinite(p.sv)||p.sh<0||p.sv<0)return'水平縫與垂直縫不得小於 0。';return''}
+  function fmt(n){return round(n).toFixed(6).replace(/0+$/,'').replace(/\.$/,'')||'0'}
+  function edgeOffsets(tileSize,doubleLine){return doubleLine?[0,tileSize]:[0]}
+  function pat(p){
+    const m=model(p),frame=p.jointMode!=='center',openEnds=p.jointMode==='open';
+    const endInset=openEnds?Math.min(m.crossGap,p.th*.2):0,shortDash=p.th-2*endInset;
+    const modeText=p.jointMode==='frame'?'independent closed tile segments':openEnds?'open-ended tile segments':'centerline segments';
+    const lines=[`*${p.patname},Tile ${fmt(p.tw)}x${fmt(p.th)} ${modeText} pattern`];
+    const addLong=(along,cross)=>{
+      const dash=m.alongGap>0?`,${fmt(p.tw)},${fmt(-m.alongGap)}`:'';
+      const line=p.orient==='H'?`0,${fmt(along)},${fmt(cross)},0,${fmt(m.R*m.Mr)}${dash}`:`90,${fmt(cross)},${fmt(along)},0,${fmt(m.R*m.Mr)}${dash}`;
+      lines.push(line);
+    };
+    const addShort=(along,cross)=>{
+      const start=cross+endInset,off=m.R*m.Mr-shortDash;
+      const line=p.orient==='H'?`90,${fmt(along)},${fmt(start)},0,${fmt(m.Mc)},${fmt(shortDash)},${fmt(-off)}`:`0,${fmt(start)},${fmt(along)},0,${fmt(m.Mc)},${fmt(shortDash)},${fmt(-off)}`;
+      lines.push(line);
+    };
+    m.phases.forEach((phase,r)=>{
+      const cross=r*m.Mr;
+      addLong(phase,cross);
+      if(frame)addLong(phase,cross+p.th);
+      addShort(phase,cross);
+      if(frame)addShort(phase+p.tw,cross);
+    });
+    return lines.join('\r\n')+'\r\n';
+  }
+  const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3'};
+  function resizeCanvas(c){const dpr=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}return{w:r.width,h:r.height,dpr}}
+  function draw(p){const c=$('#preview'),{w,h,dpr}=resizeCanvas(c),ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);const m=model(p),along=p.orient==='H'?w:h,cross=p.orient==='H'?h:w,scale=Math.min(along/(m.Mc*4.2),cross/(m.Mr*5.4)),rows=Math.ceil(cross/(m.Mr*scale))+3,cols=Math.ceil(along/(m.Mc*scale))+5;ctx.lineWidth=1;let count=0;for(let r=-2;r<rows;r++){const phase=m.phases[((r%m.R)+m.R)%m.R];for(let k=-3;k<cols;k++){const u=(phase+k*m.Mc)*scale,v=r*m.Mr*scale;let x,y,rw,rh;if(p.orient==='H'){x=u;y=v;rw=p.tw*scale;rh=p.th*scale}else{x=v;y=u;rw=p.th*scale;rh=p.tw*scale}if(x+rw<0||x>w||y+rh<0||y>h)continue;ctx.fillStyle=(r+k)%2===0?'rgba(207,224,215,.22)':'rgba(207,224,215,.15)';ctx.strokeStyle='rgba(215,232,223,.78)';ctx.fillRect(x,y,rw,rh);ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.max(0,rw-1),Math.max(0,rh-1));count++}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
+  function refresh(){const p=params(),err=valid(p);$('#error').textContent=err;$('#download').disabled=!!err;$('#copy').disabled=!!err;if(err)return;const m=model(p);$('#metricMc').textContent=fmt(m.Mc);$('#metricMr').textContent=fmt(m.Mr);$('#metricType').textContent=types[p.ptile];$('#patText').value=pat(p);draw(p)}
+  function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
+  $$('input').forEach(el=>el.addEventListener('input',refresh));$$('input[type=radio]').forEach(el=>el.addEventListener('change',refresh));
+  $$('.chip').forEach(b=>b.addEventListener('click',()=>{const [w,h]=b.dataset.size.split(',');$('#tw').value=w;$('#th').value=h;refresh()}));
+  $('#patname').addEventListener('blur',e=>{e.target.value=cleanName(e.target.value);refresh()});
+  $('#download').addEventListener('click',()=>{const p=params();if(valid(p))return;$('#patname').value=p.patname;const blob=new Blob([pat(p)],{type:'text/plain;charset=us-ascii'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=p.patname+'.pat';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('PAT 檔已下載')});
+  $('#copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('#patText').value);toast('PAT 內容已複製')}catch{const t=$('#patText');t.select();document.execCommand('copy');toast('PAT 內容已複製')}});
+  $('#reset').addEventListener('click',()=>{Object.entries(defaults).forEach(([k,v])=>{const el=$('#'+k);if(el)el.value=v});$('#oh').checked=true;$('#filled').checked=true;$('input[name=ptile][value="1"]').checked=true;refresh();toast('已恢復預設參數')});
+  addEventListener('resize',refresh);refresh();
+</script>
+</body>
+</html>
