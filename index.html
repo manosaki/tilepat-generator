@@ -66,6 +66,7 @@
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>二一交丁</strong><small>隔排偏移 1/2 磚</small></span><input type="radio" name="ptile" value="2"><i class="radio-dot"></i></label>
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一階梯</strong><small>三排循環 0・1/3・2/3</small></span><input type="radio" name="ptile" value="3"><i class="radio-dot"></i></label>
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一交錯</strong><small>隔排偏移 1/3 磚</small></span><input type="radio" name="ptile" value="4"><i class="radio-dot"></i></label>
+          <label class="pattern"><span class="pattern-swatch stagger" style="transform:rotate(45deg);width:28px;height:28px"></span><span><strong>人字貼</strong><small>45°／135° 交織排列</small></span><input type="radio" name="ptile" value="5"><i class="radio-dot"></i></label>
         </div>
       </div>
     </section>
@@ -106,6 +107,20 @@
     const endInset=openEnds?Math.min(m.crossGap,p.th*.2):0,shortDash=p.th-2*endInset;
     const modeText=p.jointMode==='frame'?'independent closed tile segments':openEnds?'open-ended tile segments':'centerline segments';
     const lines=[`*${p.patname},Tile ${fmt(p.tw)}x${fmt(p.th)} ${modeText} pattern`];
+    if(p.ptile==='5'){
+      const sideGap=p.sv,longGap=p.sh,module=p.th+sideGap,root2=Math.sqrt(2);
+      const inset=openEnds?Math.min(sideGap,p.tw*.1):0,segment=Math.max(.000001,p.tw-2*inset);
+      const dash=`${fmt(segment)},${fmt(-(p.th+longGap))}`;
+      const add45=(ox,oy)=>lines.push(`45,${fmt(ox+inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(module)},${dash}`);
+      const add135=(ox,oy)=>lines.push(`135,${fmt(ox-inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(-module)},${dash}`);
+      add45(0,0);
+      add135(module/root2,module/root2);
+      if(frame&&sideGap>0){
+        add45(-sideGap/root2,sideGap/root2);
+        add135((module-sideGap)/root2,(module-sideGap)/root2);
+      }
+      return lines.join('\r\n')+'\r\n';
+    }
     const addLong=(along,cross)=>{
       const dash=m.alongGap>0?`,${fmt(p.tw)},${fmt(-m.alongGap)}`:'';
       const line=p.orient==='H'?`0,${fmt(along)},${fmt(cross)},0,${fmt(m.R*m.Mr)}${dash}`:`90,${fmt(cross)},${fmt(along)},0,${fmt(m.R*m.Mr)}${dash}`;
@@ -125,9 +140,10 @@
     });
     return lines.join('\r\n')+'\r\n';
   }
-  const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3'};
+  const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3','5':'人字貼・45°'};
   function resizeCanvas(c){const dpr=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}return{w:r.width,h:r.height,dpr}}
-  function draw(p){const c=$('#preview'),{w,h,dpr}=resizeCanvas(c),ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);const m=model(p),along=p.orient==='H'?w:h,cross=p.orient==='H'?h:w,scale=Math.min(along/(m.Mc*4.2),cross/(m.Mr*5.4)),rows=Math.ceil(cross/(m.Mr*scale))+3,cols=Math.ceil(along/(m.Mc*scale))+5;ctx.lineWidth=1;let count=0;for(let r=-2;r<rows;r++){const phase=m.phases[((r%m.R)+m.R)%m.R];for(let k=-3;k<cols;k++){const u=(phase+k*m.Mc)*scale,v=r*m.Mr*scale;let x,y,rw,rh;if(p.orient==='H'){x=u;y=v;rw=p.tw*scale;rh=p.th*scale}else{x=v;y=u;rw=p.th*scale;rh=p.tw*scale}if(x+rw<0||x>w||y+rh<0||y>h)continue;ctx.fillStyle=(r+k)%2===0?'rgba(207,224,215,.22)':'rgba(207,224,215,.15)';ctx.strokeStyle='rgba(215,232,223,.78)';ctx.fillRect(x,y,rw,rh);ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.max(0,rw-1),Math.max(0,rh-1));count++}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
+  function draw(p){const c=$('#preview'),{w,h,dpr}=resizeCanvas(c),ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(p.ptile==='5'){drawHerringbone(ctx,w,h,p);return}const m=model(p),along=p.orient==='H'?w:h,cross=p.orient==='H'?h:w,scale=Math.min(along/(m.Mc*4.2),cross/(m.Mr*5.4)),rows=Math.ceil(cross/(m.Mr*scale))+3,cols=Math.ceil(along/(m.Mc*scale))+5;ctx.lineWidth=1;let count=0;for(let r=-2;r<rows;r++){const phase=m.phases[((r%m.R)+m.R)%m.R];for(let k=-3;k<cols;k++){const u=(phase+k*m.Mc)*scale,v=r*m.Mr*scale;let x,y,rw,rh;if(p.orient==='H'){x=u;y=v;rw=p.tw*scale;rh=p.th*scale}else{x=v;y=u;rw=p.th*scale;rh=p.tw*scale}if(x+rw<0||x>w||y+rh<0||y>h)continue;ctx.fillStyle=(r+k)%2===0?'rgba(207,224,215,.22)':'rgba(207,224,215,.15)';ctx.strokeStyle='rgba(215,232,223,.78)';ctx.fillRect(x,y,rw,rh);ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.max(0,rw-1),Math.max(0,rh-1));count++}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
+  function drawHerringbone(ctx,w,h,p){const M=(p.th+p.sv)*Math.min(w/900,h/520)*3,L=p.tw/(p.th+p.sv)*M,W=p.th/(p.th+p.sv)*M;ctx.strokeStyle='rgba(215,232,223,.8)';ctx.fillStyle='rgba(207,224,215,.16)';ctx.lineWidth=1;let count=0;for(let row=-4;row<Math.ceil(h/(2*M))+4;row++){for(let col=-5;col<Math.ceil(w/(2*M))+5;col++){const bx=col*2*M+(row%2)*M,by=row*2*M;[[bx,by,45],[bx+M,by+M,-45],[bx+2*M,by+M,45],[bx+M,by+2*M,-45]].forEach(([x,y,a])=>{ctx.save();ctx.translate(x,y);ctx.rotate(a*Math.PI/180);ctx.fillRect(0,-W/2,L,W);ctx.strokeRect(.5,-W/2+.5,Math.max(0,L-1),Math.max(0,W-1));ctx.restore();count++})}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
   function refresh(){const p=params(),err=valid(p);$('#error').textContent=err;$('#download').disabled=!!err;$('#copy').disabled=!!err;if(err)return;const m=model(p);$('#metricMc').textContent=fmt(m.Mc);$('#metricMr').textContent=fmt(m.Mr);$('#metricType').textContent=types[p.ptile];$('#patText').value=pat(p);draw(p)}
   function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
   $$('input').forEach(el=>el.addEventListener('input',refresh));$$('input[type=radio]').forEach(el=>el.addEventListener('change',refresh));
