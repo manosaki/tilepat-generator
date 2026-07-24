@@ -83,7 +83,7 @@
         <div class="filename"><input id="patname" type="text" value="TILEBRICK_SEGMENT" aria-label="PAT 圖案名稱" maxlength="31"><span>.pat</span></div>
         <div class="actions"><button class="btn primary" id="download">下載 PAT 檔</button><button class="btn" id="copy">複製內容</button><button class="btn" id="reset">重設參數</button></div>
         <div class="error" id="error" role="alert"></div>
-        <div class="note"><b>單位提醒</b><br>PAT 不記錄 cm 或 mm，只記錄數值。請讓這裡的輸入單位與 AutoCAD 圖面單位一致；若圖面以 mm 繪製，60 × 30 cm 請輸入 600 × 300。</div>
+        <div class="note"><b>單位提醒</b><br>PAT 不記錄 cm 或 mm，只記錄數值。請讓這裡的輸入單位與 AutoCAD 圖面單位一致；若圖面以 mm 繪製，60 × 30 cm 請輸入 600 × 300。下載時會自動加入唯一代碼，確保 PAT 檔名與內部圖案名稱完全相同。</div>
       </div><div>
         <ol class="steps"><li>下載後，把 PAT 放進 AutoCAD 支援檔案搜尋路徑。</li><li>執行 HATCH，在圖案清單的「自訂」中選擇此圖案。</li><li>比例設 1、角度設 0，再指定封閉牆面；窗洞可作為孤島。</li><li>完成後可在性質面板調整原點、角度與比例。</li></ol>
         <details><summary>檢視 PAT 原始內容</summary><textarea id="patText" readonly spellcheck="false"></textarea></details>
@@ -114,10 +114,10 @@
       const add45=(ox,oy)=>lines.push(`45,${fmt(ox+inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(module)},${dash}`);
       const add135=(ox,oy)=>lines.push(`135,${fmt(ox-inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(-module)},${dash}`);
       add45(0,0);
-      add135(module/root2,module/root2);
+      add135(p.tw/root2,p.tw/root2);
       if(frame&&sideGap>0){
         add45(-sideGap/root2,sideGap/root2);
-        add135((module-sideGap)/root2,(module-sideGap)/root2);
+        add135((p.tw-sideGap)/root2,(p.tw-sideGap)/root2);
       }
       return lines.join('\r\n')+'\r\n';
     }
@@ -158,8 +158,8 @@
         ctx.stroke();
       }
     };
-    family(1,0);family(-1,0);
-    if(frame&&side>0){family(1,root2*side);family(-1,-root2*side)}
+    family(1,0);family(-1,root2*p.tw*scale);
+    if(frame&&side>0){family(1,root2*side);family(-1,root2*(p.tw-side)*scale)}
     ctx.setLineDash([]);ctx.lineDashOffset=0;
     $('#tileCount').textContent='AR-HBONE 週期預覽';
   }
@@ -168,7 +168,7 @@
   $$('input').forEach(el=>el.addEventListener('input',refresh));$$('input[type=radio]').forEach(el=>el.addEventListener('change',refresh));
   $$('.chip').forEach(b=>b.addEventListener('click',()=>{const [w,h]=b.dataset.size.split(',');$('#tw').value=w;$('#th').value=h;refresh()}));
   $('#patname').addEventListener('blur',e=>{e.target.value=cleanName(e.target.value);refresh()});
-  $('#download').addEventListener('click',()=>{const p=params();if(valid(p))return;$('#patname').value=p.patname;const blob=new Blob([pat(p)],{type:'text/plain;charset=us-ascii'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=p.patname+'.pat';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('PAT 檔已下載')});
+  $('#download').addEventListener('click',()=>{const p=params();if(valid(p))return;const base=p.patname.replace(/_[A-Z0-9]{6}$/,'').slice(0,24),stamp=Date.now().toString(36).toUpperCase().slice(-6),unique=cleanName(base+'_'+stamp),out={...p,patname:unique};$('#patname').value=unique;$('#patText').value=pat(out);const blob=new Blob([pat(out)],{type:'text/plain;charset=us-ascii'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=unique+'.pat';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('PAT 檔已下載：'+unique+'.pat')});
   $('#copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('#patText').value);toast('PAT 內容已複製')}catch{const t=$('#patText');t.select();document.execCommand('copy');toast('PAT 內容已複製')}});
   $('#reset').addEventListener('click',()=>{Object.entries(defaults).forEach(([k,v])=>{const el=$('#'+k);if(el)el.value=v});$('#oh').checked=true;$('#filled').checked=true;$('input[name=ptile][value="1"]').checked=true;refresh();toast('已恢復預設參數')});
   addEventListener('resize',refresh);refresh();
