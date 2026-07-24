@@ -143,7 +143,26 @@
   const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3','5':'人字貼・45°'};
   function resizeCanvas(c){const dpr=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}return{w:r.width,h:r.height,dpr}}
   function draw(p){const c=$('#preview'),{w,h,dpr}=resizeCanvas(c),ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(p.ptile==='5'){drawHerringbone(ctx,w,h,p);return}const m=model(p),along=p.orient==='H'?w:h,cross=p.orient==='H'?h:w,scale=Math.min(along/(m.Mc*4.2),cross/(m.Mr*5.4)),rows=Math.ceil(cross/(m.Mr*scale))+3,cols=Math.ceil(along/(m.Mc*scale))+5;ctx.lineWidth=1;let count=0;for(let r=-2;r<rows;r++){const phase=m.phases[((r%m.R)+m.R)%m.R];for(let k=-3;k<cols;k++){const u=(phase+k*m.Mc)*scale,v=r*m.Mr*scale;let x,y,rw,rh;if(p.orient==='H'){x=u;y=v;rw=p.tw*scale;rh=p.th*scale}else{x=v;y=u;rw=p.th*scale;rh=p.tw*scale}if(x+rw<0||x>w||y+rh<0||y>h)continue;ctx.fillStyle=(r+k)%2===0?'rgba(207,224,215,.22)':'rgba(207,224,215,.15)';ctx.strokeStyle='rgba(215,232,223,.78)';ctx.fillRect(x,y,rw,rh);ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.max(0,rw-1),Math.max(0,rh-1));count++}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
-  function drawHerringbone(ctx,w,h,p){const M=(p.th+p.sv)*Math.min(w/900,h/520)*3,L=p.tw/(p.th+p.sv)*M,W=p.th/(p.th+p.sv)*M;ctx.strokeStyle='rgba(215,232,223,.8)';ctx.fillStyle='rgba(207,224,215,.16)';ctx.lineWidth=1;let count=0;for(let row=-4;row<Math.ceil(h/(2*M))+4;row++){for(let col=-5;col<Math.ceil(w/(2*M))+5;col++){const bx=col*2*M+(row%2)*M,by=row*2*M;[[bx,by,45],[bx+M,by+M,-45],[bx+2*M,by+M,45],[bx+M,by+2*M,-45]].forEach(([x,y,a])=>{ctx.save();ctx.translate(x,y);ctx.rotate(a*Math.PI/180);ctx.fillRect(0,-W/2,L,W);ctx.strokeRect(.5,-W/2+.5,Math.max(0,L-1),Math.max(0,W-1));ctx.restore();count++})}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
+  function drawHerringbone(ctx,w,h,p){
+    const module=p.th+p.sv,scale=Math.min(w/(module*8),h/(module*6));
+    const M=module*scale,L=p.tw*scale,endGap=(p.th+p.sh)*scale,root2=Math.sqrt(2);
+    const frame=p.jointMode!=='center',side=p.sv*scale,lineCount=Math.ceil((w+h)/(root2*M))+6;
+    ctx.strokeStyle='rgba(215,232,223,.82)';ctx.lineWidth=1;ctx.setLineDash([L,endGap]);
+    const family=(slope,shift)=>{
+      for(let n=-lineCount;n<=lineCount;n++){
+        const b=n*root2*M+shift;
+        ctx.lineDashOffset=-n*M;
+        ctx.beginPath();
+        if(slope===1){ctx.moveTo(-h,-h+b);ctx.lineTo(w+h,w+h+b)}
+        else{ctx.moveTo(-h,h+b);ctx.lineTo(w+h,-w-h+b)}
+        ctx.stroke();
+      }
+    };
+    family(1,0);family(-1,0);
+    if(frame&&side>0){family(1,root2*side);family(-1,-root2*side)}
+    ctx.setLineDash([]);ctx.lineDashOffset=0;
+    $('#tileCount').textContent='AR-HBONE 週期預覽';
+  }
   function refresh(){const p=params(),err=valid(p);$('#error').textContent=err;$('#download').disabled=!!err;$('#copy').disabled=!!err;if(err)return;const m=model(p);$('#metricMc').textContent=fmt(m.Mc);$('#metricMr').textContent=fmt(m.Mr);$('#metricType').textContent=types[p.ptile];$('#patText').value=pat(p);draw(p)}
   function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
   $$('input').forEach(el=>el.addEventListener('input',refresh));$$('input[type=radio]').forEach(el=>el.addEventListener('change',refresh));
