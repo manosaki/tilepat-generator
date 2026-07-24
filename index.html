@@ -66,7 +66,7 @@
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>二一交丁</strong><small>隔排偏移 1/2 磚</small></span><input type="radio" name="ptile" value="2"><i class="radio-dot"></i></label>
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一階梯</strong><small>三排循環 0・1/3・2/3</small></span><input type="radio" name="ptile" value="3"><i class="radio-dot"></i></label>
           <label class="pattern"><span class="pattern-swatch stagger"></span><span><strong>三一交錯</strong><small>隔排偏移 1/3 磚</small></span><input type="radio" name="ptile" value="4"><i class="radio-dot"></i></label>
-          <label class="pattern"><span class="pattern-swatch stagger" style="transform:rotate(45deg);width:28px;height:28px"></span><span><strong>人字貼</strong><small>45°／135° 交織排列</small></span><input type="radio" name="ptile" value="5"><i class="radio-dot"></i></label>
+          <label class="pattern"><span class="pattern-swatch stagger" style="transform:rotate(45deg);width:28px;height:28px"></span><span><strong>人字貼</strong><small>限 2:1 磚形・AutoCAD 角度 45°</small></span><input type="radio" name="ptile" value="5"><i class="radio-dot"></i></label>
         </div>
       </div>
     </section>
@@ -83,9 +83,9 @@
         <div class="filename"><input id="patname" type="text" value="TILEBRICK_SEGMENT" aria-label="PAT 圖案名稱" maxlength="31"><span>.pat</span></div>
         <div class="actions"><button class="btn primary" id="download">下載 PAT 檔</button><button class="btn" id="copy">複製內容</button><button class="btn" id="reset">重設參數</button></div>
         <div class="error" id="error" role="alert"></div>
-        <div class="note"><b>單位提醒</b><br>PAT 不記錄 cm 或 mm，只記錄數值。請讓這裡的輸入單位與 AutoCAD 圖面單位一致；若圖面以 mm 繪製，60 × 30 cm 請輸入 600 × 300。下載時會自動加入唯一代碼，確保 PAT 檔名與內部圖案名稱完全相同。</div>
+        <div class="note"><b>單位與人字貼限制</b><br>PAT 不記錄 cm 或 mm，只記錄數值。請讓輸入單位與 AutoCAD 圖面一致；若圖面以 mm 繪製，60 × 30 cm 請輸入 600 × 300。人字貼目前僅支援磚長＝磚寬×2，尺寸視為含縫標稱模距，水平縫與垂直縫取平均值。下載時會自動加入唯一代碼，確保檔名與內部圖案名稱相同。</div>
       </div><div>
-        <ol class="steps"><li>下載後，把 PAT 放進 AutoCAD 支援檔案搜尋路徑。</li><li>執行 HATCH，在圖案清單的「自訂」中選擇此圖案。</li><li>比例設 1、角度設 0，再指定封閉牆面；窗洞可作為孤島。</li><li>完成後可在性質面板調整原點、角度與比例。</li></ol>
+        <ol class="steps"><li>下載後，把 PAT 放進 AutoCAD 支援檔案搜尋路徑。</li><li>執行 HATCH，在圖案清單的「自訂」中選擇此圖案。</li><li>比例設 1；一般磚型角度設 0，人字貼角度設 45°，再指定封閉牆面。</li><li>完成後可在性質面板調整原點、角度與比例。</li></ol>
         <details><summary>檢視 PAT 原始內容</summary><textarea id="patText" readonly spellcheck="false"></textarea></details>
       </div></div>
     </section>
@@ -108,19 +108,20 @@
     const modeText=p.jointMode==='frame'?'independent closed tile segments':openEnds?'open-ended tile segments':'centerline segments';
     const lines=[`*${p.patname},Tile ${fmt(p.tw)}x${fmt(p.th)} ${modeText} pattern`];
     if(p.ptile==='5'){
-      const sideGap=p.sv,longGap=p.sh,module=p.th+sideGap,longModule=p.tw+longGap,root2=Math.sqrt(2);
-      const inset=openEnds?Math.min(sideGap,p.tw*.1):0;
-      const dashOn=Math.max(.000001,longModule+module-2*inset);
-      const dashOff=Math.max(.000001,longModule-module+2*inset);
-      const dash=`${fmt(dashOn)},${fmt(-dashOff)}`;
-      const add45=(ox,oy)=>lines.push(`45,${fmt(ox+inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(module)},${dash}`);
-      const add135=(ox,oy)=>lines.push(`135,${fmt(ox-inset/root2)},${fmt(oy+inset/root2)},${fmt(module)},${fmt(-module)},${dash}`);
-      add45(0,0);
-      add135(module/root2,module/root2);
-      if(frame&&sideGap>0){
-        add45(-sideGap/root2,sideGap/root2);
-        add135((module-sideGap)/root2,(module-sideGap)/root2);
-      }
+      const L=p.tw,W=p.th,C=2*L,g=Math.min((p.sh+p.sv)/2,W*.9),i=g/2;
+      const rects=[
+        [0,0,W,L],[L,0,L,W],[W,W,L,W],[L+W,W,W,L],
+        [0,L,L,W],[L,L,W,L],[W,L+W,W,L],[L+W,L+W,L,W]
+      ];
+      const addRect=([x,y,w,h])=>{
+        const x0=x+i,x1=x+w-i,y0=y+i,y1=y+h-i,rw=w-g,rh=h-g;
+        const hg=C-rw,vg=C-rh;
+        lines.push(`0,${fmt(x0)},${fmt(y0)},0,${fmt(C)},${fmt(rw)},${fmt(-hg)}`);
+        lines.push(`0,${fmt(x0)},${fmt(y1)},0,${fmt(C)},${fmt(rw)},${fmt(-hg)}`);
+        lines.push(`90,${fmt(x0)},${fmt(y0)},0,${fmt(C)},${fmt(rh)},${fmt(-vg)}`);
+        lines.push(`90,${fmt(x1)},${fmt(y0)},0,${fmt(C)},${fmt(rh)},${fmt(-vg)}`);
+      };
+      rects.forEach(addRect);
       return lines.join('\r\n')+'\r\n';
     }
     const addLong=(along,cross)=>{
@@ -142,12 +143,12 @@
     });
     return lines.join('\r\n')+'\r\n';
   }
-  const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3','5':'人字貼・45°'};
+  const types={'1':'平貼・0 偏移','2':'二一交丁・1/2','3':'三一階梯・1/3','4':'三一交錯・1/3','5':'人字貼・AutoCAD 角度 45°'};
   function resizeCanvas(c){const dpr=Math.min(devicePixelRatio||1,2),r=c.getBoundingClientRect();if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}return{w:r.width,h:r.height,dpr}}
   function draw(p){const c=$('#preview'),{w,h,dpr}=resizeCanvas(c),ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(p.ptile==='5'){drawHerringbone(ctx,w,h,p);return}const m=model(p),along=p.orient==='H'?w:h,cross=p.orient==='H'?h:w,scale=Math.min(along/(m.Mc*4.2),cross/(m.Mr*5.4)),rows=Math.ceil(cross/(m.Mr*scale))+3,cols=Math.ceil(along/(m.Mc*scale))+5;ctx.lineWidth=1;let count=0;for(let r=-2;r<rows;r++){const phase=m.phases[((r%m.R)+m.R)%m.R];for(let k=-3;k<cols;k++){const u=(phase+k*m.Mc)*scale,v=r*m.Mr*scale;let x,y,rw,rh;if(p.orient==='H'){x=u;y=v;rw=p.tw*scale;rh=p.th*scale}else{x=v;y=u;rw=p.th*scale;rh=p.tw*scale}if(x+rw<0||x>w||y+rh<0||y>h)continue;ctx.fillStyle=(r+k)%2===0?'rgba(207,224,215,.22)':'rgba(207,224,215,.15)';ctx.strokeStyle='rgba(215,232,223,.78)';ctx.fillRect(x,y,rw,rh);ctx.strokeRect(Math.round(x)+.5,Math.round(y)+.5,Math.max(0,rw-1),Math.max(0,rh-1));count++}}$('#tileCount').textContent=`畫面約 ${count} 塊`}
   function drawHerringbone(ctx,w,h,p){
     const module=p.th+p.sv,scale=Math.min(w/(module*8),h/(module*6));
-    const M=module*scale,longModule=(p.tw+p.sh)*scale,L=(p.tw+p.sh+module)*scale,endGap=Math.max(.000001,longModule-M),root2=Math.sqrt(2);
+    const M=module*scale,L=p.tw*scale,endGap=(p.th+p.sh)*scale,root2=Math.sqrt(2);
     const frame=p.jointMode!=='center',side=p.sv*scale,lineCount=Math.ceil((w+h)/(root2*M))+6;
     ctx.strokeStyle='rgba(215,232,223,.82)';ctx.lineWidth=1;ctx.setLineDash([L,endGap]);
     const family=(slope,shift)=>{
@@ -163,9 +164,9 @@
     family(1,0);family(-1,root2*M);
     if(frame&&side>0){family(1,root2*side);family(-1,root2*(M-side))}
     ctx.setLineDash([]);ctx.lineDashOffset=0;
-    $('#tileCount').textContent='AR-HBONE 週期預覽';
+    $('#tileCount').textContent='人字貼・套用角度 45°';
   }
-  function refresh(){const p=params(),err=valid(p);$('#error').textContent=err;$('#download').disabled=!!err;$('#copy').disabled=!!err;if(err)return;const m=model(p);$('#metricMc').textContent=fmt(m.Mc);$('#metricMr').textContent=fmt(m.Mr);$('#metricType').textContent=types[p.ptile];$('#patText').value=pat(p);draw(p)}
+  function refresh(){const p=params();let err=valid(p);if(!err&&p.ptile==='5'&&Math.abs(p.tw-2*p.th)>1e-6)err='人字貼目前僅支援 2:1 長寬比（磚長必須等於磚寬 × 2）。';$('#error').textContent=err;$('#download').disabled=!!err;$('#copy').disabled=!!err;if(err)return;const m=model(p);$('#metricMc').textContent=fmt(m.Mc);$('#metricMr').textContent=fmt(m.Mr);$('#metricType').textContent=types[p.ptile];$('#patText').value=pat(p);draw(p)}
   function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
   $$('input').forEach(el=>el.addEventListener('input',refresh));$$('input[type=radio]').forEach(el=>el.addEventListener('change',refresh));
   $$('.chip').forEach(b=>b.addEventListener('click',()=>{const [w,h]=b.dataset.size.split(',');$('#tw').value=w;$('#th').value=h;refresh()}));
